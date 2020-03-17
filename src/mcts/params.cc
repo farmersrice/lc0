@@ -82,6 +82,15 @@ const OptionId SearchParams::kRootHasOwnCpuctParamsId{
     "If enabled, cpuct parameters for root node are taken from *AtRoot "
     "parameters. Otherwise, they are the same as for the rest of nodes. "
     "Temporary flag for transition to a new version."};
+const OptionId SearchParams::kInitialPolicyExponentId{
+    "initial-policy-exponent", "InitialPolicyExponent",
+    "Initial exponent for policy in UCT search. Higher values promote "
+    "deeper search, lower values promote flatter search."};
+const OptionId SearchParams::kPolicyExponentDecayId{
+    "policy-exponent-decay", "PolicyExponentDecay",
+    "Rate of decay of policy exponent. Multiplied by the log of visits. "
+    "Higher values promote flatter search after a node has received many "
+    "visits, lower values promote deeper search."};
 const OptionId SearchParams::kTemperatureId{
     "temperature", "Temperature",
     "Tau value from softmax formula for the first move. If equal to 0, the "
@@ -258,6 +267,8 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 2.815f;
   options->Add<FloatOption>(kCpuctFactorAtRootId, 0.0f, 1000.0f) = 2.815f;
   options->Add<BoolOption>(kRootHasOwnCpuctParamsId) = true;
+  options->Add<FloatOption>(kInitialPolicyExponentId, 0.0f, 100.0f) = 1.2f;
+  options->Add<FloatOption>(kPolicyExponentDecayId, 0.0f, 100.0f) = 0.025f;
   options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 0.0f;
   options->Add<IntOption>(kTempDecayMovesId, 0, 100) = 0;
   options->Add<IntOption>(kTemperatureCutoffMoveId, 0, 1000) = 0;
@@ -331,6 +342,8 @@ SearchParams::SearchParams(const OptionsDict& options)
           options.Get<float>(options.Get<bool>(kRootHasOwnCpuctParamsId.GetId())
                                  ? kCpuctFactorAtRootId.GetId()
                                  : kCpuctFactorId.GetId())),
+      kInitialPolicyExponent(options.Get<float>(kInitialPolicyExponentId.GetId())),
+      kPolicyExponentDecay(options.Get<float>(kPolicyExponentDecayId.GetId())),
       kNoiseEpsilon(options.Get<bool>(kNoiseId.GetId())
                         ? 0.25f
                         : options.Get<float>(kNoiseEpsilonId.GetId())),

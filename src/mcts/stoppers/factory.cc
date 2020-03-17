@@ -50,7 +50,7 @@ const OptionId kRamLimitMbId{
     "enforced."};
 const OptionId kMoveOverheadId{
     "move-overhead", "MoveOverheadMs",
-    "Amount of time, in milliseconds, that the engine subtracts from it's "
+    "Amount of time, in milliseconds, that the engine subtracts from its "
     "total available time (to compensate for slow connection, interprocess "
     "communication, etc)."};
 const OptionId kSlowMoverId{

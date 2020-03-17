@@ -54,6 +54,12 @@ class SearchParams {
   float GetCpuctFactor(bool at_root) const {
     return at_root ? kCpuctFactorAtRoot : kCpuctFactor;
   }
+  float GetInitialPolicyExponent() const {
+    return kInitialPolicyExponent;
+  }
+  float GetPolicyExponentDecay() const {
+    return kPolicyExponentDecay;
+  }
   float GetTemperature() const {
     return options_.Get<float>(kTemperatureId.GetId());
   }
@@ -126,6 +132,8 @@ class SearchParams {
   static const OptionId kCpuctFactorId;
   static const OptionId kCpuctFactorAtRootId;
   static const OptionId kRootHasOwnCpuctParamsId;
+  static const OptionId kInitialPolicyExponentId;
+  static const OptionId kPolicyExponentDecayId;
   static const OptionId kTemperatureId;
   static const OptionId kTempDecayMovesId;
   static const OptionId kTemperatureCutoffMoveId;
@@ -179,6 +187,8 @@ class SearchParams {
   const float kCpuctBaseAtRoot;
   const float kCpuctFactor;
   const float kCpuctFactorAtRoot;
+  const float kInitialPolicyExponent;
+  const float kPolicyExponentDecay;
   const float kNoiseEpsilon;
   const float kNoiseAlpha;
   const bool kFpuAbsolute;
