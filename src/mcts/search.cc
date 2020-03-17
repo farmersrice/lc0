@@ -248,7 +248,7 @@ std::vector<std::string> Search::GetVerboseStats(Node* node) const {
   const float puct_mult =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
   const float policy_exp = params_.GetInitialPolicyExponent() - 
-          params_.GetPolicyExponentDecay() * std::log2(node->GetChildrenVisits());
+          params_.GetPolicyExponentDecay() * std::log2(1 + node->GetChildrenVisits());
   const bool logit_q = params_.GetLogitQ();
 
   std::vector<EdgeAndNode> edges;
@@ -1020,7 +1020,7 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
 
       const float Q = child.GetQ(fpu, draw_score, params_.GetLogitQ());
       const float policy_exp = params_.GetInitialPolicyExponent() - 
-          params_.GetPolicyExponentDecay() * std::log2(node->GetChildrenVisits());
+          params_.GetPolicyExponentDecay() * std::log2(1 + node->GetChildrenVisits());
       const float score = child.GetU(puct_mult, policy_exp) + Q + M;
       if (score > best) {
         second_best = best;
