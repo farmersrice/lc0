@@ -1225,7 +1225,7 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget, bool is_odd_depth) {
   const float puct_mult =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
   const float policy_exp = params_.GetInitialPolicyExponent() - 
-      params_.GetPolicyExponentDecay() * std::log2(node->GetChildrenVisits());
+      params_.GetPolicyExponentDecay() * std::log2(1 + node->GetChildrenVisits());
   const float fpu =
       GetFpu(params_, node, node == search_->root_node_, draw_score);
   for (auto edge : node->Edges()) {
