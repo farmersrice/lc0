@@ -325,6 +325,7 @@ class SearchWorker {
   const bool moves_left_support_;
   IterationStats iteration_stats_;
   StoppersHints latest_time_manager_hints_;
+  int update_q_counter_ = 1;
 };
 
 }  // namespace lczero

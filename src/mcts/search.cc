@@ -1524,28 +1524,37 @@ void SearchWorker::DoBackupUpdateSingleNode(
 
   // Update NNCache results with Q values (actually WL value).
 
-  history_.Trim(search_->played_history_.GetLength());
-  std::vector<Move> to_add;
-  std::vector<float> updated_values;
-  // Could instead reserve one more than the difference between history_.size()
-  // and history_.capacity().
-  to_add.reserve(60);
-  updated_values.reserve(60);
+  // Only do this every 5 updates to save time. Also, this helps us because
+  // a subtree with 2 or 3 nodes might not be better than the raw nn eval,
+  // so hopefully "randomness" means we have a few nodes under our belt 
+  // before we update the eval to something more accurate.
 
-  Node* cur = node;
-  while (cur != search_->root_node_) {
-    Node* prev = cur->GetParent();
-    to_add.push_back(prev->GetEdgeToNode(cur)->GetMove());
-    // For now, always update value. In future, consider thresholding: only
-    // update the value in NNCache if the subtree has at least X nodes.
-    updated_values.push_back(prev->GetWL());
-    cur = prev;
+  if (update_q_counter_ % 5 == 0) {
+    history_.Trim(search_->played_history_.GetLength());
+    std::vector<Move> to_add;
+    std::vector<float> updated_values;
+    // Could instead reserve one more than the difference between history_.size()
+    // and history_.capacity().
+    to_add.reserve(60);
+    updated_values.reserve(60);
+
+    Node* cur = node;
+    while (cur != search_->root_node_) {
+      Node* prev = cur->GetParent();
+      to_add.push_back(prev->GetEdgeToNode(cur)->GetMove());
+      // For now, always update value. In future, consider thresholding: only
+      // update the value in NNCache if the subtree has at least X nodes.
+      updated_values.push_back(prev->GetWL());
+      cur = prev;
+    }
+    for (int i = to_add.size() - 1; i >= 0; i--) {
+      const auto hash = history_.HashLast(params_.GetCacheHistoryLength() + 1);
+      computation_->UpdateQVal(hash, updated_values[i]);
+      history_.Append(to_add[i]);
+    }
   }
-  for (int i = to_add.size() - 1; i >= 0; i--) {
-    const auto hash = history_.HashLast(params_.GetCacheHistoryLength() + 1);
-    computation_->UpdateQVal(hash, updated_values[i]);
-    history_.Append(to_add[i]);
-  }
+  update_q_counter_++;
+ 
 
   search_->total_playouts_ += node_to_process.multivisit;
   search_->cum_depth_ += node_to_process.depth * node_to_process.multivisit;
