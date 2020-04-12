@@ -73,6 +73,8 @@ class CachingComputation {
   void ComputeBlocking();
   // Returns Q value of @sample.
   float GetQVal(int sample) const;
+  // Update Q value by hash, return true if success.
+  bool UpdateQVal(uint64_t hash, float q);
   // Returns probability of draw if NN has WDL value head.
   float GetDVal(int sample) const;
   // Returns estimated remaining moves.

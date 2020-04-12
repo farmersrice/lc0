@@ -95,8 +95,7 @@ class LruCache {
   }
 
   // Looks up and pins the element by key. Returns nullptr if not found.
-  // If found, brings the element to the head of the queue (makes it last to
-  // evict); furthermore, a call to Unpin must be made for each such element.
+  // A call to Unpin must be made for each such element.
   // Use of LruCacheLock is recommended to automate this pin management.
   V* LookupAndPin(K key) {
     if (capacity_.load(std::memory_order_relaxed) == 0) return nullptr;
@@ -106,7 +105,6 @@ class LruCache {
     auto hash = hasher_(key) % hash_.size();
     for (Item* iter = hash_[hash]; iter; iter = iter->next_in_hash) {
       if (key == iter->key) {
-        // BringToFront(iter);
         ++iter->pins;
         return iter->value.get();
       }

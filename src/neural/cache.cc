@@ -99,6 +99,13 @@ float CachingComputation::GetQVal(int sample) const {
   return item.lock->q;
 }
 
+bool CachingComputation::UpdateQVal(uint64_t hash, float q) {
+  NNCacheLock lock(cache_, hash);
+  if (!lock) return false;
+  lock->q = q;
+  return true;
+}
+
 float CachingComputation::GetDVal(int sample) const {
   const auto& item = batch_[sample];
   if (item.idx_in_parent >= 0) return parent_->GetDVal(item.idx_in_parent);

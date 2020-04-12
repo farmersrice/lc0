@@ -1521,6 +1521,32 @@ void SearchWorker::DoBackupUpdateSingleNode(
           search_->GetBestChildNoTemperature(search_->root_node_, 0);
     }
   }
+
+  // Update NNCache results with Q values (actually WL value).
+
+  history_.Trim(search_->played_history_.GetLength());
+  std::vector<Move> to_add;
+  std::vector<float> updated_values;
+  // Could instead reserve one more than the difference between history_.size()
+  // and history_.capacity().
+  to_add.reserve(60);
+  updated_values.reserve(60);
+
+  Node* cur = node;
+  while (cur != search_->root_node_) {
+    Node* prev = cur->GetParent();
+    to_add.push_back(prev->GetEdgeToNode(cur)->GetMove());
+    // For now, always update value. In future, consider thresholding: only
+    // update the value in NNCache if the subtree has at least X nodes.
+    updated_values.push_back(prev->GetWL());
+    cur = prev;
+  }
+  for (int i = to_add.size() - 1; i >= 0; i--) {
+    const auto hash = history_.HashLast(params_.GetCacheHistoryLength() + 1);
+    computation_->UpdateQVal(hash, updated_values[i]);
+    history_.Append(to_add[i]);
+  }
+
   search_->total_playouts_ += node_to_process.multivisit;
   search_->cum_depth_ += node_to_process.depth * node_to_process.multivisit;
   search_->max_depth_ = std::max(search_->max_depth_, node_to_process.depth);
