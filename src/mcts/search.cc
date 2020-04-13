@@ -1524,12 +1524,12 @@ void SearchWorker::DoBackupUpdateSingleNode(
 
   // Update NNCache results with Q values (actually WL value).
 
-  // Only do this every 5 updates to save time. Also, this helps us because
+  // Only do this every X updates to save time. Also, this helps us because
   // a subtree with 2 or 3 nodes might not be better than the raw nn eval,
   // so hopefully "randomness" means we have a few nodes under our belt 
   // before we update the eval to something more accurate.
 
-  if (update_q_counter_ == 5) {
+  if (update_q_counter_ == params_.GetCacheUpdateDelay()) {
     update_q_counter_ = 0;
     history_.Trim(search_->played_history_.GetLength());
     std::vector<Move> to_add;
@@ -1543,8 +1543,6 @@ void SearchWorker::DoBackupUpdateSingleNode(
     while (cur != search_->root_node_) {
       Node* prev = cur->GetParent();
       to_add.push_back(prev->GetEdgeToNode(cur)->GetMove());
-      // For now, always update value. In future, consider thresholding: only
-      // update the value in NNCache if the subtree has at least X nodes.
       updated_values.push_back(prev->GetWL());
       cur = prev;
     }
