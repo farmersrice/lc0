@@ -81,6 +81,7 @@ class SearchParams {
   }
   int GetCacheHistoryLength() const { return kCacheHistoryLength; }
   int GetCacheUpdateDelay() const { return kCacheUpdateDelay; }
+  int GetCacheUpdateThreshold() const { return kCacheUpdateThreshold; }
   float GetPolicySoftmaxTemp() const { return kPolicySoftmaxTemp; }
   float GetShortSightedness() const { return kShortSightedness; }
   int GetMaxCollisionEvents() const { return kMaxCollisionEvents; }
@@ -138,6 +139,7 @@ class SearchParams {
   static const OptionId kFpuValueAtRootId;
   static const OptionId kCacheHistoryLengthId;
   static const OptionId kCacheUpdateDelayId;
+  static const OptionId kCacheUpdateThresholdId;
   static const OptionId kPolicySoftmaxTempId;
   static const OptionId kMaxCollisionEventsId;
   static const OptionId kMaxCollisionVisitsId;
@@ -186,6 +188,7 @@ class SearchParams {
   const float kFpuValueAtRoot;
   const int kCacheHistoryLength;
   const int kCacheUpdateDelay;
+  const int kCacheUpdateThreshold;
   const float kPolicySoftmaxTemp;
   const int kMaxCollisionEvents;
   const int kMaxCollisionVisits;

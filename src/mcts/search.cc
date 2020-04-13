@@ -1543,12 +1543,15 @@ void SearchWorker::DoBackupUpdateSingleNode(
     while (cur != search_->root_node_) {
       Node* prev = cur->GetParent();
       to_add.push_back(prev->GetEdgeToNode(cur)->GetMove());
-      updated_values.push_back(prev->GetWL());
+      updated_values.push_back(((int)prev->GetN() >= 
+          params_.GetCacheUpdateThreshold() ? prev->GetWL() : -1000.0f));
       cur = prev;
     }
     for (int i = to_add.size() - 1; i >= 0; i--) {
-      const auto hash = history_.HashLast(params_.GetCacheHistoryLength() + 1);
-      computation_->UpdateQVal(hash, updated_values[i]);
+      if (updated_values[i] > -500.0f) {
+        const auto hash = history_.HashLast(params_.GetCacheHistoryLength() + 1);
+        computation_->UpdateQVal(hash, updated_values[i]);
+      }
       history_.Append(to_add[i]);
     }
   }

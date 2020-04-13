@@ -160,6 +160,10 @@ const OptionId SearchParams::kCacheUpdateDelayId{
     "cache-update-delay", "CacheUpdateDelay",
     "The number of moves to delay between updates to the NNCache based on the "
     "node values generated from search. Set to 0 to turn off updates."};
+const OptionId SearchParams::kCacheUpdateThresholdId{
+    "cache-update-threshold", "CacheUpdateThreshold",
+    "The size of the subtree that a node needs to have before it is eligible "
+    "to have its value in the NNCache updated."};
 const OptionId SearchParams::kPolicySoftmaxTempId{
     "policy-softmax-temp", "PolicyTemperature",
     "Policy softmax temperature. Higher values make priors of move candidates "
@@ -289,6 +293,7 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kFpuValueAtRootId, -100.0f, 100.0f) = 1.0f;
   options->Add<IntOption>(kCacheHistoryLengthId, 0, 7) = 0;
   options->Add<IntOption>(kCacheUpdateDelayId, 0, 100000000) = 256;
+  options->Add<IntOption>(kCacheUpdateThresholdId, 0, 100000000) = 32;
   options->Add<FloatOption>(kPolicySoftmaxTempId, 0.1f, 10.0f) = 1.607f;
   options->Add<IntOption>(kMaxCollisionEventsId, 1, 65536) = 32;
   options->Add<IntOption>(kMaxCollisionVisitsId, 1, 1000000) = 9999;
@@ -359,6 +364,7 @@ SearchParams::SearchParams(const OptionsDict& options)
                           : options.Get<float>(kFpuValueAtRootId)),
       kCacheHistoryLength(options.Get<int>(kCacheHistoryLengthId)),
       kCacheUpdateDelay(options.Get<int>(kCacheUpdateDelayId)),
+      kCacheUpdateThreshold(options.Get<int>(kCacheUpdateThresholdId)),
       kPolicySoftmaxTemp(options.Get<float>(kPolicySoftmaxTempId)),
       kMaxCollisionEvents(options.Get<int>(kMaxCollisionEventsId)),
       kMaxCollisionVisits(options.Get<int>(kMaxCollisionVisitsId)),
