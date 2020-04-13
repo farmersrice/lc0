@@ -1529,7 +1529,8 @@ void SearchWorker::DoBackupUpdateSingleNode(
   // so hopefully "randomness" means we have a few nodes under our belt 
   // before we update the eval to something more accurate.
 
-  if (update_q_counter_ % 5 == 0) {
+  if (update_q_counter_ == 5) {
+    update_q_counter_ = 0;
     history_.Trim(search_->played_history_.GetLength());
     std::vector<Move> to_add;
     std::vector<float> updated_values;
