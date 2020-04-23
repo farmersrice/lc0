@@ -57,26 +57,28 @@ const OptionId SearchParams::kLogitQId{
     "logit-q", "LogitQ",
     "Apply logit to Q when determining Q+U best child. This makes the U term "
     "less dominant when Q is near -1 or +1."};
-const OptionId SearchParams::kCpuctId{
-    "cpuct", "CPuct",
-    "cpuct_init constant from \"UCT search\" algorithm. Higher values promote "
+const OptionId SearchParams::kCconId{
+    "ccon", "CCon",
+    "ccon constant from \"UCT search\" algorithm. Higher values promote "
     "more exploration/wider search, lower values promote more "
     "confidence/deeper search."};
-const OptionId SearchParams::kCpuctAtRootId{
-    "cpuct-at-root", "CPuctAtRoot",
-    "cpuct_init constant from \"UCT search\" algorithm, for root node."};
-const OptionId SearchParams::kCpuctBaseId{
-    "cpuct-base", "CPuctBase",
-    "cpuct_base constant from \"UCT search\" algorithm. Lower value means "
-    "higher growth of Cpuct as number of node visits grows."};
-const OptionId SearchParams::kCpuctBaseAtRootId{
-    "cpuct-base-at-root", "CPuctBaseAtRoot",
-    "cpuct_base constant from \"UCT search\" algorithm, for root node."};
-const OptionId SearchParams::kCpuctFactorId{
-    "cpuct-factor", "CPuctFactor", "Multiplier for the cpuct growth formula."};
-const OptionId SearchParams::kCpuctFactorAtRootId{
-    "cpuct-factor-at-root", "CPuctFactorAtRoot",
-    "Multiplier for the cpuct growth formula at root."};
+const OptionId SearchParams::kCconAtRootId{
+    "ccon-at-root", "CConAtRoot",
+    "ccon constant from \"UCT search\" algorithm, for root node."};
+const OptionId SearchParams::kCpenId{
+    "cpen", "CPen",
+    "cpen constant from \"UCT search\" algorithm. Controls "
+    "how important policy is in search. Higher = more important."};
+const OptionId SearchParams::kCpenAtRootId{
+    "cpen-at-root", "CPenAtRoot",
+    "cpen constant from \"UCT search\" algorithm, for root node."};
+const OptionId SearchParams::kCattId{
+    "catt", "CAtt",
+    "catt constant from \"UCT search\" algorithm. Controls "
+    "how important policy is in search. Higher = less important."};
+const OptionId SearchParams::kCattAtRootId{
+    "catt-at-root", "CattAtRoot",
+    "catt constant from \"UCT search\" algorithm, for root node."};
 // Remove this option after 0.25 has been made mandatory in training and the
 // training server stops sending it.
 const OptionId SearchParams::kRootHasOwnCpuctParamsId{
@@ -161,10 +163,6 @@ const OptionId SearchParams::kCacheHistoryLengthId{
     "this value is less than history that NN uses to eval a position, it's "
     "possble that the search will use eval of the same position with different "
     "history taken from cache."};
-const OptionId SearchParams::kPolicySoftmaxTempId{
-    "policy-softmax-temp", "PolicyTemperature",
-    "Policy softmax temperature. Higher values make priors of move candidates "
-    "closer to each other, widening the search."};
 const OptionId SearchParams::kMaxCollisionVisitsId{
     "max-collision-visits", "MaxCollisionVisits",
     "Total allowed node collision visits, per batch."};
@@ -264,12 +262,12 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<IntOption>(kMiniBatchSizeId, 1, 1024) = 256;
   options->Add<IntOption>(kMaxPrefetchBatchId, 0, 1024) = 32;
   options->Add<BoolOption>(kLogitQId) = false;
-  options->Add<FloatOption>(kCpuctId, 0.0f, 100.0f) = 2.147f;
-  options->Add<FloatOption>(kCpuctAtRootId, 0.0f, 100.0f) = 2.147f;
-  options->Add<FloatOption>(kCpuctBaseId, 1.0f, 1000000000.0f) = 18368.0f;
-  options->Add<FloatOption>(kCpuctBaseAtRootId, 1.0f, 1000000000.0f) = 18368.0f;
-  options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 2.815f;
-  options->Add<FloatOption>(kCpuctFactorAtRootId, 0.0f, 1000.0f) = 2.815f;
+  options->Add<FloatOption>(kCconId, 0.0f, 100.0f) = 2.147f;
+  options->Add<FloatOption>(kCconAtRootId, 0.0f, 100.0f) = 2.147f;
+  options->Add<FloatOption>(kCpenId, 0.0f, 100.0f) = 1.0f;
+  options->Add<FloatOption>(kCpenAtRootId, 0.0f, 100.0f) = 1.0f;
+  options->Add<FloatOption>(kCattId, 0.0f, 100.0f) = 1.0f;
+  options->Add<FloatOption>(kCattAtRootId, 0.0f, 100.0f) = 1.0f;
   options->Add<BoolOption>(kRootHasOwnCpuctParamsId) = true;
   options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 0.0f;
   options->Add<IntOption>(kTempDecayMovesId, 0, 100) = 0;
@@ -290,7 +288,6 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<ChoiceOption>(kFpuStrategyAtRootId, fpu_strategy) = "same";
   options->Add<FloatOption>(kFpuValueAtRootId, -100.0f, 100.0f) = 1.0f;
   options->Add<IntOption>(kCacheHistoryLengthId, 0, 7) = 0;
-  options->Add<FloatOption>(kPolicySoftmaxTempId, 0.1f, 10.0f) = 1.607f;
   options->Add<IntOption>(kMaxCollisionEventsId, 1, 65536) = 32;
   options->Add<IntOption>(kMaxCollisionVisitsId, 1, 1000000) = 9999;
   options->Add<BoolOption>(kOutOfOrderEvalId) = true;
@@ -343,18 +340,18 @@ void SearchParams::Populate(OptionsParser* options) {
 SearchParams::SearchParams(const OptionsDict& options)
     : options_(options),
       kLogitQ(options.Get<bool>(kLogitQId)),
-      kCpuct(options.Get<float>(kCpuctId)),
-      kCpuctAtRoot(options.Get<float>(
-          options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCpuctAtRootId
-                                                      : kCpuctId)),
-      kCpuctBase(options.Get<float>(kCpuctBaseId)),
-      kCpuctBaseAtRoot(options.Get<float>(
-          options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCpuctBaseAtRootId
-                                                      : kCpuctBaseId)),
-      kCpuctFactor(options.Get<float>(kCpuctFactorId)),
-      kCpuctFactorAtRoot(options.Get<float>(
-          options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCpuctFactorAtRootId
-                                                      : kCpuctFactorId)),
+      kCcon(options.Get<float>(kCconId)),
+      kCconAtRoot(options.Get<float>(
+          options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCconAtRootId
+                                                      : kCconId)),
+      kCpen(options.Get<float>(kCpenId)),
+      kCpenAtRoot(options.Get<float>(
+          options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCpenAtRootId
+                                                      : kCpenId)),
+      kCatt(options.Get<float>(kCattId)),
+      kCattAtRoot(options.Get<float>(
+          options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCattAtRootId
+                                                      : kCattId)),
       kNoiseEpsilon(options.Get<float>(kNoiseEpsilonId)),
       kNoiseAlpha(options.Get<float>(kNoiseAlphaId)),
       kFpuAbsolute(options.Get<std::string>(kFpuStrategyId) == "absolute"),
@@ -367,7 +364,6 @@ SearchParams::SearchParams(const OptionsDict& options)
                           ? kFpuValue
                           : options.Get<float>(kFpuValueAtRootId)),
       kCacheHistoryLength(options.Get<int>(kCacheHistoryLengthId)),
-      kPolicySoftmaxTemp(options.Get<float>(kPolicySoftmaxTempId)),
       kMaxCollisionEvents(options.Get<int>(kMaxCollisionEventsId)),
       kMaxCollisionVisits(options.Get<int>(kMaxCollisionVisitsId)),
       kOutOfOrderEval(options.Get<bool>(kOutOfOrderEvalId)),

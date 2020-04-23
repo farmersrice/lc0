@@ -240,14 +240,6 @@ inline float GetFpu(const SearchParams& params, Node* node, bool is_root_node,
              : -node->GetQ(-draw_score) -
                    value * std::sqrt(node->GetVisitedPolicy());
 }
-
-inline float ComputeCpuct(const SearchParams& params, uint32_t N,
-                          bool is_root_node) {
-  const float init = params.GetCpuct(is_root_node);
-  const float k = params.GetCpuctFactor(is_root_node);
-  const float base = params.GetCpuctBase(is_root_node);
-  return init + (k ? k * FastLog((N + base) / base) : 0.0f);
-}
 }  // namespace
 
 std::vector<std::string> Search::GetVerboseStats(Node* node) const {
@@ -257,9 +249,9 @@ std::vector<std::string> Search::GetVerboseStats(Node* node) const {
   const bool is_black_to_move = (played_history_.IsBlackToMove() == is_root);
   const float draw_score = GetDrawScore(is_odd_depth);
   const float fpu = GetFpu(params_, node, is_root, draw_score);
-  const float cpuct = ComputeCpuct(params_, node->GetN(), is_root);
-  const float U_coeff =
-      cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
+  const float ccon = params_.GetCcon(is_root);
+  const float cpen = params_.GetCpen(is_root);
+  const float catt = params_.GetCatt(is_root);
   const bool logit_q = params_.GetLogitQ();
   const float m_slope = params_.GetMovesLeftSlope();
   const float m_cap = params_.GetMovesLeftMaxEffect();
@@ -273,15 +265,16 @@ std::vector<std::string> Search::GetVerboseStats(Node* node) const {
   std::vector<EdgeAndNode> edges;
   for (const auto& edge : node->Edges()) edges.push_back(edge);
 
+  const float childrenVisits = node->GetChildrenVisits();
   std::sort(
       edges.begin(), edges.end(),
-      [&fpu, &U_coeff, &logit_q, &draw_score](EdgeAndNode a, EdgeAndNode b) {
+      [&fpu, &childrenVisits, &ccon, &cpen, &catt, &logit_q, &draw_score](EdgeAndNode a, EdgeAndNode b) {
         return std::forward_as_tuple(
                    a.GetN(),
-                   a.GetQ(fpu, draw_score, logit_q) + a.GetU(U_coeff)) <
+                   a.GetQ(fpu, draw_score, logit_q) + a.GetU(childrenVisits, ccon, cpen, catt)) <
                std::forward_as_tuple(
                    b.GetN(),
-                   b.GetQ(fpu, draw_score, logit_q) + b.GetU(U_coeff));
+                   b.GetQ(fpu, draw_score, logit_q) + b.GetU(childrenVisits, ccon, cpen, catt));
       });
 
   std::vector<std::string> infos;
@@ -322,11 +315,13 @@ std::vector<std::string> Search::GetVerboseStats(Node* node) const {
     oss << "(Q: " << std::setw(8) << std::setprecision(5)
         << edge.GetQ(fpu, draw_score, /* logit_q= */ false) << ") ";
 
-    oss << "(U: " << std::setw(6) << std::setprecision(5) << edge.GetU(U_coeff)
+    oss << "(U: " << std::setw(6) << std::setprecision(5)
+        << edge.GetU(node->GetChildrenVisits(), ccon, cpen, catt)
         << ") ";
 
     oss << "(S: " << std::setw(8) << std::setprecision(5)
-        << Q + edge.GetU(U_coeff) + M_effect << ") ";
+        << Q + edge.GetU(node->GetChildrenVisits(), ccon, cpen, catt) 
+        + M_effect << ") ";
 
     oss << "(V: ";
     std::optional<float> v;
@@ -1053,9 +1048,10 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
 
     // If we fall through, then n_in_flight_ has been incremented but this
     // playout remains incomplete; we must go deeper.
-    const float cpuct = ComputeCpuct(params_, node->GetN(), is_root_node);
-    const float puct_mult =
-        cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
+    bool is_root_node = (node == search_->root_node_);
+    const float ccon = params_.GetCcon(is_root_node);
+    const float cpen = params_.GetCpen(is_root_node);
+    const float catt = params_.GetCatt(is_root_node);
     float best = std::numeric_limits<float>::lowest();
     float best_without_u = std::numeric_limits<float>::lowest();
     float second_best = std::numeric_limits<float>::lowest();
@@ -1105,7 +1101,7 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
         M *= a + b * std::abs(Q) + c * Q * Q;
       }
 
-      const float score = child.GetU(puct_mult) + Q + M;
+      const float score = child.GetU(node->GetChildrenVisits(), ccon, cpen, catt) + Q + M;
       if (score > best) {
         second_best = best;
         second_best_edge = best_edge;
@@ -1120,7 +1116,7 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
 
     if (second_best_edge) {
       int estimated_visits_to_change_best =
-          best_edge.GetVisitsToReachU(second_best, puct_mult, best_without_u);
+          best_edge.GetVisitsToReachU(second_best, best_without_u, 2);
       // Only cache for n-2 steps as the estimate created by GetVisitsToReachU
       // has potential rounding errors and some conservative logic that can push
       // it up to 2 away from the real value.
@@ -1332,18 +1328,18 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget, bool is_odd_depth) {
   // Populate all subnodes and their scores.
   typedef std::pair<float, EdgeAndNode> ScoredEdge;
   std::vector<ScoredEdge> scores;
-  const float cpuct =
-      ComputeCpuct(params_, node->GetN(), node == search_->root_node_);
-  const float puct_mult =
-      cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
+  bool is_root_node = (node == search_->root_node_);
+  const float ccon = params_.GetCcon(is_root_node);
+  const float cpen = params_.GetCpen(is_root_node);
+  const float catt = params_.GetCatt(is_root_node);
   const float fpu =
       GetFpu(params_, node, node == search_->root_node_, draw_score);
   for (auto edge : node->Edges()) {
     if (edge.GetP() == 0.0f) continue;
     // Flip the sign of a score to be able to easily sort.
     // TODO: should this use logit_q if set??
-    scores.emplace_back(-edge.GetU(puct_mult) -
-                            edge.GetQ(fpu, draw_score, /* logit_q= */ false),
+    scores.emplace_back(-edge.GetU(node->GetChildrenVisits(), ccon, cpen, catt)
+                            - edge.GetQ(fpu, draw_score, /* logit_q= */ false),
                         edge);
   }
 
@@ -1378,7 +1374,7 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget, bool is_odd_depth) {
       const float q = edge.GetQ(-fpu, draw_score, /* logit_q= */ false);
       if (next_score > q) {
         budget_to_spend =
-            std::min(budget, int(edge.GetP() * puct_mult / (next_score - q) -
+            std::min(budget, int(edge.GetP() * node->GetChildrenVisits() / (next_score - q) -
                                  edge.GetNStarted()) +
                                  1);
       } else {
@@ -1440,9 +1436,6 @@ void SearchWorker::FetchSingleNodeResult(NodeToProcess* node_to_process,
     float p = computation_->GetPVal(
         idx_in_computation,
         edge.GetMove().as_nn_index(node_to_process->probability_transform));
-    // Perform softmax and take into account policy softmax temperature T.
-    // Note that we want to calculate (exp(p-max_p))^(1/T) = exp((p-max_p)/T).
-    p = FastExp((p - max_p) / params_.GetPolicySoftmaxTemp());
 
     // Note that p now lies in [0, 1], so it is safe to store it in compressed
     // format. Normalization happens later.

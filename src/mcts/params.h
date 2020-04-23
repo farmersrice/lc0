@@ -47,13 +47,10 @@ class SearchParams {
     return options_.Get<int>(kMaxPrefetchBatchId);
   }
   bool GetLogitQ() const { return kLogitQ; }
-  float GetCpuct(bool at_root) const { return at_root ? kCpuctAtRoot : kCpuct; }
-  float GetCpuctBase(bool at_root) const {
-    return at_root ? kCpuctBaseAtRoot : kCpuctBase;
-  }
-  float GetCpuctFactor(bool at_root) const {
-    return at_root ? kCpuctFactorAtRoot : kCpuctFactor;
-  }
+  float GetCcon(bool at_root) const { return at_root ? kCconAtRoot : kCcon; }
+  float GetCpen(bool at_root) const { return at_root ? kCpenAtRoot : kCpen; }
+  float GetCatt(bool at_root) const { return at_root ? kCattAtRoot : kCatt; }
+
   float GetTemperature() const { return options_.Get<float>(kTemperatureId); }
   float GetTemperatureVisitOffset() const {
     return options_.Get<float>(kTemperatureVisitOffsetId);
@@ -83,7 +80,6 @@ class SearchParams {
     return at_root ? kFpuValueAtRoot : kFpuValue;
   }
   int GetCacheHistoryLength() const { return kCacheHistoryLength; }
-  float GetPolicySoftmaxTemp() const { return kPolicySoftmaxTemp; }
   float GetShortSightedness() const { return kShortSightedness; }
   int GetMaxCollisionEvents() const { return kMaxCollisionEvents; }
   int GetMaxCollisionVisitsId() const { return kMaxCollisionVisits; }
@@ -117,12 +113,12 @@ class SearchParams {
   static const OptionId kMiniBatchSizeId;
   static const OptionId kMaxPrefetchBatchId;
   static const OptionId kLogitQId;
-  static const OptionId kCpuctId;
-  static const OptionId kCpuctAtRootId;
-  static const OptionId kCpuctBaseId;
-  static const OptionId kCpuctBaseAtRootId;
-  static const OptionId kCpuctFactorId;
-  static const OptionId kCpuctFactorAtRootId;
+  static const OptionId kCconId;
+  static const OptionId kCconAtRootId;
+  static const OptionId kCpenId;
+  static const OptionId kCpenAtRootId;
+  static const OptionId kCattId;
+  static const OptionId kCattAtRootId;
   static const OptionId kRootHasOwnCpuctParamsId;
   static const OptionId kTemperatureId;
   static const OptionId kTempDecayMovesId;
@@ -140,7 +136,6 @@ class SearchParams {
   static const OptionId kFpuStrategyAtRootId;
   static const OptionId kFpuValueAtRootId;
   static const OptionId kCacheHistoryLengthId;
-  static const OptionId kPolicySoftmaxTempId;
   static const OptionId kMaxCollisionEventsId;
   static const OptionId kMaxCollisionVisitsId;
   static const OptionId kOutOfOrderEvalId;
@@ -174,12 +169,12 @@ class SearchParams {
   // TODO(crem) Some of those parameters can be converted to be dynamic after
   //            trivial search optimizations.
   const bool kLogitQ;
-  const float kCpuct;
-  const float kCpuctAtRoot;
-  const float kCpuctBase;
-  const float kCpuctBaseAtRoot;
-  const float kCpuctFactor;
-  const float kCpuctFactorAtRoot;
+  const float kCcon;
+  const float kCconAtRoot;
+  const float kCpen;
+  const float kCpenAtRoot;
+  const float kCatt;
+  const float kCattAtRoot;
   const float kNoiseEpsilon;
   const float kNoiseAlpha;
   const bool kFpuAbsolute;
@@ -187,7 +182,6 @@ class SearchParams {
   const bool kFpuAbsoluteAtRoot;
   const float kFpuValueAtRoot;
   const int kCacheHistoryLength;
-  const float kPolicySoftmaxTemp;
   const int kMaxCollisionEvents;
   const int kMaxCollisionVisits;
   const bool kOutOfOrderEval;

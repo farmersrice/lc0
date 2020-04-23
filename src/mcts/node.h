@@ -394,10 +394,12 @@ class EdgeAndNode {
     return edge_ ? edge_->GetMove(flip) : Move();
   }
 
-  // Returns U = numerator * p / N.
-  // Passed numerator is expected to be equal to (cpuct * sqrt(N[parent])).
-  float GetU(float numerator) const {
-    return numerator * GetP() / (1 + GetNStarted());
+  float GetU(float parentChildVisits, float ccon, float cpen, float catt) const {
+    float c = ccon * std::sqrt(FastLog(parentChildVisits + 1) / (1 + GetNStarted()));
+    float m = cpen * std::sqrt(FastLog(parentChildVisits + 2) / 
+        (1 + parentChildVisits)) / (GetP() + catt);
+
+    return c - m;
   }
 
   int GetVisitsToReachU(float target_score, float numerator,
