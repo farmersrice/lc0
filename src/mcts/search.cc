@@ -1116,7 +1116,7 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
 
     if (second_best_edge) {
       int estimated_visits_to_change_best =
-          best_edge.GetVisitsToReachU(second_best, best_without_u, 2);
+          best_edge.GetVisitsToReachU(second_best, 2, best_without_u);
       // Only cache for n-2 steps as the estimate created by GetVisitsToReachU
       // has potential rounding errors and some conservative logic that can push
       // it up to 2 away from the real value.
@@ -1374,7 +1374,7 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget, bool is_odd_depth) {
       const float q = edge.GetQ(-fpu, draw_score, /* logit_q= */ false);
       if (next_score > q) {
         budget_to_spend =
-            std::min(budget, int(edge.GetP() * node->GetChildrenVisits() / (next_score - q) -
+            std::min(budget, int(edge.GetP() * 2 / (next_score - q) -
                                  edge.GetNStarted()) +
                                  1);
       } else {
