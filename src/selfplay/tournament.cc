@@ -112,6 +112,7 @@ void SelfPlayTournament::PopulateOptions(OptionsParser* options) {
 
   auto defaults = options->GetMutableDefaultsOptions();
   defaults->Set<int>(SearchParams::kMiniBatchSizeId, 32);
+  defaults->Set<float>(SearchParams::kPolicySoftmaxTempId, 1.0f);
   defaults->Set<int>(SearchParams::kMaxCollisionVisitsId, 1);
   defaults->Set<int>(SearchParams::kMaxCollisionEventsId, 1);
   defaults->Set<int>(SearchParams::kCacheHistoryLengthId, 7);
